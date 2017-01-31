@@ -4,6 +4,13 @@
 #define RST_PIN         9           // Configurable, see typical pin layout above
 #define SS_PIN          10          // Configurable, see typical pin layout above
 #define serialbufferSize 50 
+
+/**
+ * This sketch depends on the MFRC522 library from Miguel Balboa (https://github.com/miguelbalboa/rfid)
+ * It will read a MRFC522 card and output the card ID as a Hex string trough serial
+ * It will also monitor the serial connection and upon a command it will open a relay 
+ */
+
 int pinOut = 5;
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
