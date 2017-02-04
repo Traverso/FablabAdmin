@@ -1,0 +1,53 @@
+body {
+  background: #999;
+  margin:10px;
+  margin-top:90px;
+
+}
+
+a { color:#333; }
+.fb_panel { font-size:18px; }
+.list_item { cursor:pointer; }
+.grid_item .name { font-size:11px;font-weight:900; }
+.grid_item .email { font-size:11px; }
+.grid_item .status { font-size:11px; }
+.grid_item {
+  width:20%;
+  float:left;
+  font-size:14px;
+  border:1px solid #e3e3e3;
+  background-color:#efefef;
+  padding:5px;
+  margin-right:5px;
+  margin-bottom:5px;
+  overflow:hidden;
+}
+.grid_item img { width:100%; }
+.clock_table td { padding-right:10px; }
+.clock_table .clock { font-size:50px;font-family: 'Orbitron', sans-serif; } 
+.clock_table .edit {font-size:18px;margin-right:10px;margin-bottom:10px; }
+
+#opening_hours_edit .form-control { font-size:45px;height:50px; } 
+#opening_hours_edit .clock_table .edit {margin-bottom:5px; }
+
+.breadcrumb > li.right-action {
+  float:right !important;
+}
+.breadcrumb > li.right-action::before {
+  float:right !important;
+  content:'' !important;
+}
+
+#admin-info {
+  float:right;
+  margin-top:10px;
+  margin-right:10px;
+  display:none;
+  text-transform:uppercase;
+}
+.panel-body { padding:8px;min-height:600px; }
+.panel-body  h4 { margin:0px;margin-bottom:5px; }
+#members_list_view tbody { font-size:14px; }
+
+#intro { padding:30px;}
+table.wrap td { padding:4px; }

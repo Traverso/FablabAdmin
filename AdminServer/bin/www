@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('fablabnv:server');
+var http = require('http');
+var sp = require('serialport');
+var SerialPort = sp.SerialPort;
+var PHOTO_FILE = '/home/pi/fablabnv/public/image_stream.jpg';
+var fs = require('fs');
+var spawn = require('child_process').spawn;
+var proc;
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+var io = require('socket.io').listen(server);
+
+io.sockets.on('connection', function(socket) {
+  console.log('--------------');
+  console.log('Socket io is connected.');
+  console.log('--------------');
+  app.set('socket',socket);
+
+  socket.on('start-photo',function(){
+	startStreaming(io);
+  });
+
+});
+
+function startStreaming(io){
+	console.log('startStreaming to '+ PHOTO_FILE);
+	var args = ["-p","150,150,400,350","-w","300","-h","250","-o",PHOTO_FILE]; //five seconds
+	proc = spawn('raspistill',args);
+	fs.watchFile(PHOTO_FILE,function(current,previous){
+		var img = 'image_stream.jpg?_t='+ (Math.random() * 100000);
+		io.sockets.emit('liveStream',img);
+		fs.unwatchFile(PHOTO_FILE);
+	});
+}
+
+
+//setup serial
+sp.list(function(error,ports){
+  for(var i=0; i < ports.length;i++){
+    var p = ports[i];
+    console.log(p);
+
+    if(p.manufacturer && p.manufacturer.indexOf('Arduino') != -1){
+
+      var port = new SerialPort(p.comName,function(err){
+        if(err){
+          console.log('Error:', err.message);
+        }
+      });
+
+      port.on('open',function(){
+        console.log('Serial port opened');
+        port.on('data',function(data){
+          var str = '';
+          for(var i = 0; i < data.length;i++){
+            str += String.fromCharCode(data[i]);
+          }
+          str = str.trim();
+          if(str.length != 11) return;
+          //console.log(str);
+
+	  var s = app.get('socket');
+          s.emit('card',{card:str});
+        });
+      });
+    }
+  }
+
+});
+
+/*
+var port = new SerialPort('/dev/tty.usbmodem1411',function(err){
+  if(err){
+    console.log('Error:', err.message);
+  }
+});
+
+port.on('open',function(){
+  console.log('Serial port opened');
+  port.on('data',function(data){
+    var str = '';
+    for(var i = 0; i < data.length;i++){
+      str += String.fromCharCode(data[i]);
+    }
+    str = str.trim();
+    if(str.length != 11) return;
+    console.log(str);
+    app.get('socket').emit('card',{card:str});
+  });
+});
+
+*/
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  console.log(error);
+
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
