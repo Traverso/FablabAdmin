@@ -51,3 +51,8 @@ a { color:#333; }
 
 #intro { padding:30px;}
 table.wrap td { padding:4px; }
+#group_users { margin-bottom:4px; }
+.group_chooser { overflow:scroll;border:1px solid #e3e3e3;height:250px;}
+.group_chooser .waiting { margin:20px;}
+.group_chooser a { padding:3px;display:block;border-bottom:1px solid #e3e3e3; }
+.group_chooser a:hover { background-color:#e3e3e3; }

@@ -15,7 +15,7 @@
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
-    <link href="/stylesheets/fablab.css" rel="stylesheet">
+    <link href="/stylesheets/fablab.css?v=040217" rel="stylesheet">
     <style>
 	.navbar .clock_table .clock { font-size:26px; }
     </style>
@@ -548,6 +548,44 @@
         </div>
   </div><!--/logs-->
 
+
+ <div id="users_for_group" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" 
+            aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">
+          Brugere i gruppen <span></span>
+        </h4>
+      </div>
+      <div class="modal-body">
+         <div id="group_users" class="group_chooser">
+
+          <div class="waiting">
+            <img src="/images/loading.gif" />
+            Vent venligst
+          </div>
+         
+         </div>
+         <div id="all_users" class="group_chooser">
+
+          <div class="waiting">
+            <img src="/images/loading.gif" />
+            Vent venligst
+          </div>
+         
+         </div>
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Luk</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
  <div id="cardreader" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -700,7 +738,7 @@
                     </td>
                     <td>
                       <span class="lab from"></span>
-                      <input class="ed " type="time" value="15:00">
+                      <input class="ed edfrom" type="time" value="15:00">
                     </td>
                   </tr>
                   <tr>
@@ -709,7 +747,7 @@
                     </td>
                     <td>
                       <span class="lab to"></span>
-                      <input class="ed" type="time" value="20:00">
+                      <input class="ed edto" type="time" value="20:00">
                     </td>
                   </tr>
                 </table>
@@ -798,7 +836,7 @@
                       </td>
                       <td>
                         <span class="lab date_end">1.1.18</span>
-                        <input class="ed" type="date" value="2018-01-01">
+                        <input class="ed date_end" type="date" value="2018-01-01">
                       </td>
                   </tr>
                 </table>

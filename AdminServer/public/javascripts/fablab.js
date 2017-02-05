@@ -5,6 +5,7 @@ var STATE_CALLBACK = null;
 var CURRENT_MEMBER = null;
 var MEMBERS_FILTER = null;
 var MEMBERS_CACHE = null;
+var GROUPS_CACHE = null;
 var IS_ADMIN = false;
 var TAKING_PHOTO = false;
 
@@ -379,7 +380,6 @@ function save_photo(){
 function addGroup(){
   var group_name = $('.group_name','#user_groups').val();
 
-  console.log('group:'+ group_name);
   if(!group_name || group_name == '')  {
     $('.group_name','#user_groups').focus();
     return;
@@ -404,20 +404,112 @@ function loadGroups(groups){
 
   for(var i = 0; i < groups.length;i++){
         var group_item = $('.group_item','#templates').clone();
-        $('.name',group_item).html(groups[i]);
+        $('.name',group_item).html(groups[i].name);
         $('.removing',group_item).attr('href','javascript:removeGroup('+ i +')');
+        $('.users_mng',group_item).attr('href','javascript:manageGroupUsers('+ i +')');
 
         $('#user_groups tbody').append(group_item);
   }
 }
 
-function removeGroup(idx){
+function manageGroupUsers(idx){
+  $('#users_for_group').modal('show');
 
+  //load all user
+  if(!MEMBERS_CACHE) {
+    $.ajax({
+          method:'GET',
+          url:'/members',
+          success:function(data){
+            MEMBERS_CACHE = data;
+            render_members_for_group(idx,data);
+          },
+          dataType:'json'
+          });
+  } else {
+      render_members_for_group(idx,MEMBERS_CACHE);
+  }
+
+  render_group_members(idx);
+  
+}
+
+function render_group_members(idx){
+
+  if(!MEMBERS_CACHE) {
+    $.ajax({
+          method:'GET',
+          url:'/members',
+          success:function(data){
+            MEMBERS_CACHE = data;
+            render_group_members(idx);
+          },
+          dataType:'json'
+          });
+    return;
+  } 
+
+  $('#group_users').html('');
+
+  for(var i = 0; i < GROUPS_CACHE[idx].members.length;i++){
+
+    for(var j = 0; j < MEMBERS_CACHE.data.length;j++){
+
+      if(GROUPS_CACHE[idx].members[i] == MEMBERS_CACHE.data[j].stripeid)
+      {
+        var t= '<a href="javascript:remove_member_from_group('+ idx +',\'';
+        t+= GROUPS_CACHE[idx].members[i];
+        t+= '\')">'+ MEMBERS_CACHE.data[j].name +'</a>';
+
+        $('#group_users').append(t);
+      }
+    }
+  }
+}
+
+function render_members_for_group(idx,members){
+  $('#all_users').html('');
+  var m = members.data;
+  for(var i = 0; i < m.length; i++){
+    var t= '<a href="javascript:add_member_to_group('+ idx +',\'';
+    t+= m[i].stripeid;
+    t+= '\')">'+ m[i].name +'</a>';
+
+    $('#all_users').append(t);
+  }
+}
+
+function remove_member_from_group(idx,member){
+  $.ajax({
+          method:'POST',
+          url:'/removeMemberFromGroup',
+          data:{group:idx,member:member},
+          success:function(data){
+            GROUPS_CACHE = data;
+            render_group_members(idx);
+          }
+         });
+}
+
+function add_member_to_group(idx,member){
+  $.ajax({
+          method:'POST',
+          url:'/addMemberToGroup',
+          data:{group:idx,member:member},
+          success:function(data){
+            GROUPS_CACHE = data;
+            render_group_members(idx);
+          }
+         });
+}
+
+function removeGroup(idx){
   $.ajax({
           method:'POST',
           url:'/remove_group',
           data:{group:idx},
           success:function(data){
+            GROUPS_CACHE = data;
             loadGroups(data);
           }
          });
@@ -474,6 +566,7 @@ function loadOpenings(openings){
   if(openings.length == 0) return;
 
   for(var i = 0; i < openings.length;i++){
+        console.log(openings[i]);
         var opening_item = $('.opening_item','#templates').clone();
 
         $(opening_item).attr('id','oi_'+ i);
@@ -481,8 +574,8 @@ function loadOpenings(openings){
         $('span.from',opening_item).html(openings[i].from);
         $('span.to',opening_item).html(openings[i].to);
 
-        $('input.from',opening_item).val(openings[i].from);
-        $('input.to',opening_item).val(openings[i].to);
+        $('input.edfrom',opening_item).val(openings[i].from);
+        $('input.edto',opening_item).val(openings[i].to);
 
         
         $('.has_periodicity input',opening_item).prop('checked',false);
@@ -499,21 +592,21 @@ function loadOpenings(openings){
         if(openings[i].date_start){
           $('.has_date_start .lab',opening_item).show();
           $('span.date_start',opening_item).html(openings[i].date_start);
-          $('.date_start_check',opening_item).attr('checked','checked');
+          $('input.date_start_check',opening_item).prop('checked',true);
           $('input.date_start',opening_item).val(openings[i].date_start);
         } else {
           $('.has_date_start .lab',opening_item).hide();
-          $('.date_start_check',opening_item).attr('checked','');
+          $('input.date_start_check',opening_item).prop('checked',false);
         }
 
         if(openings[i].date_end){
           $('.has_date_end .lab',opening_item).show();
           $('span.date_end',opening_item).html(openings[i].date_end);
-          $('.date_end_check',opening_item).attr('checked','checked');
+          $('input.date_end_check',opening_item).prop('checked',true);
           $('input.date_end',opening_item).val(openings[i].date_end);
         } else {
-          $('.has_date_end.lab',opening_item).hide();
-          $('.date_end_check',opening_item).attr('checked','');
+          $('.has_date_end .lab',opening_item).hide();
+          $('input.date_end_check',opening_item).prop('checked',false);
         }
 
 
@@ -536,14 +629,67 @@ function loadOpenings(openings){
         $('.editing',opening_item).attr('href','javascript:editOpening('+ i +')');
 
         $('.canceling',opening_item).attr('href','javascript:cancelOpening('+ i +')');
+        $('.saving',opening_item).attr('href','javascript:savingOpening('+ i +')');
 
         $('#openings table.table > tbody').append(opening_item);
   }
 }
 
+function savingOpening(idx){
+  //collect data
+  var opening = {};
+  opening.from = $('.edfrom','#oi_'+ idx).val();
+  opening.to = $('.edto','#oi_'+ idx).val();
+  opening.periodicity = [];
+
+  $("input:checked",'#oi_'+ idx +' .period').each(function(){
+    opening.periodicity.push($(this).attr('class'));
+  });
+
+  opening.date_start = '';
+  if($('input.date_start_check','#oi_'+ idx).is(':checked')){
+    opening.date_start = $('input.date_start','#oi_'+ idx).val();
+  }
+
+  opening.date_end = '';
+  if($('input.date_end_check','#oi_'+ idx).is(':checked')){
+    opening.date_end = $('input.date_end','#oi_'+ idx).val();
+  }
+
+  opening.groups = [];
+  $("input:checked",'#oi_'+ idx +' .group').each(function(){
+      var g =$('.title',$(this).parent()).text();
+      opening.groups.push(g);
+  });
+
+  opening.active = ($("input[name=status_rad]:checked",'#oi_'+ idx).val() == 'aktiv'); 
+  //console.log(opening);
+
+  $.ajax({
+        method:'POST',
+        url:'/saveOpening',
+        data:JSON.stringify({idx:idx,opening:opening}),
+        success:function(data){
+          loadOpenings(data);
+        },
+        contentType:'application/json',
+        dataType:'json'
+        });
+}
+
 function cancelOpening(idx){
   $('.ed','#oi_'+ idx).hide();
   $('.lab','#oi_'+ idx).show();
+
+  if(!$('input.date_start_check','#oi_'+ idx).is(':checked'))
+  {
+    $('.has_date_start .lab','#oi_'+ idx).hide();
+  }
+
+  if(!$('input.date_end_check','#oi_'+ idx).is(':checked'))
+  {
+    $('.has_date_end .lab','#oi_'+ idx).hide();
+  }
 }
 
 function removeOpening(idx){
@@ -569,14 +715,14 @@ function editOpening(idx){
         method:'GET',
         url:'/user_groups',
         success:function(data){
-          data.unshift('Alle');
+          data.unshift({name:'Alle'});
           for(var i = 0; i < data.length; i++){
             
             var gs = $('.group_selector','#templates').clone();
-            $('.title',gs).html(data[i]);
+            $('.title',gs).html(data[i].name);
 
             for(var j = 0; j < sel_group.length; j++){
-              if(sel_group[j] == data[i]){
+              if(sel_group[j] == data[i].name){
                   $('input',gs).prop('checked',true);
               }
             }
@@ -601,6 +747,7 @@ function loadUserGroupPanel(){
         url:'/user_groups',
         success:function(data){
           loadGroups(data);
+          GROUPS_CACHE = data;
         },
         dataType:'json'
         });

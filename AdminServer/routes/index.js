@@ -95,16 +95,13 @@ router.post('/savephoto', function(req, res, next) {
   var img = req.body.img;
   var name = 'members/'+ stripe_id +'.png';
 
-
-  console.log('saving photo '+ name);
-
   try
   {
   	var f = fablab.savephoto(name,img);
-	console.log('photo saved '+ f);
+	  console.log('photo saved '+ f);
   } catch(e) {
-	console.log('fail to save photo');
-	console.log(e);
+    console.log('fail to save photo');
+    console.log(e);
   }
 
   res.send('ok');
@@ -117,6 +114,14 @@ router.get('/logs', function(req, res, next) {
 
 router.get('/user_groups', function(req, res, next) {
   res.send(fablab.userGroups());
+});
+
+router.post('/addMemberToGroup', function(req, res, next) {
+  res.send(fablab.addMemberToGroup(req.body.group,req.body.member));
+});
+
+router.post('/removeMemberFromGroup', function(req, res, next) {
+  res.send(fablab.removeMemberFromGroup(req.body.group,req.body.member));
 });
 
 router.post('/add_group', function(req, res, next) {
@@ -133,6 +138,10 @@ router.get('/openings', function(req, res, next) {
 
 router.post('/add_opening', function(req, res, next) {
   res.send(fablab.addOpening());
+});
+
+router.post('/saveOpening', function(req, res, next) {
+  res.send(fablab.saveOpening(req.body.idx,req.body.opening));
 });
 
 router.post('/remove_opening', function(req, res, next) {
