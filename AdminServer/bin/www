@@ -42,23 +42,7 @@ io.sockets.on('connection', function(socket) {
   console.log('Socket io is connected.');
   console.log('--------------');
   app.set('socket',socket);
-
-  socket.on('start-photo',function(){
-	startStreaming(io);
-  });
-
 });
-
-function startStreaming(io){
-	console.log('startStreaming to '+ PHOTO_FILE);
-	var args = ["-p","150,150,400,350","-w","300","-h","250","-o",PHOTO_FILE]; //five seconds
-	proc = spawn('raspistill',args);
-	fs.watchFile(PHOTO_FILE,function(current,previous){
-		var img = 'image_stream.jpg?_t='+ (Math.random() * 100000);
-		io.sockets.emit('liveStream',img);
-		fs.unwatchFile(PHOTO_FILE);
-	});
-}
 
 
 //setup serial
@@ -77,16 +61,19 @@ sp.list(function(error,ports){
 
       port.on('open',function(){
         console.log('Serial port opened');
+
+        app.set('serial',port);
+
         port.on('data',function(data){
           var str = '';
           for(var i = 0; i < data.length;i++){
             str += String.fromCharCode(data[i]);
           }
           str = str.trim();
-          if(str.length != 11) return;
           //console.log(str);
+          if(str.length != 11) return;
 
-	  var s = app.get('socket');
+	        var s = app.get('socket');
           s.emit('card',{card:str});
         });
       });
@@ -95,28 +82,6 @@ sp.list(function(error,ports){
 
 });
 
-/*
-var port = new SerialPort('/dev/tty.usbmodem1411',function(err){
-  if(err){
-    console.log('Error:', err.message);
-  }
-});
-
-port.on('open',function(){
-  console.log('Serial port opened');
-  port.on('data',function(data){
-    var str = '';
-    for(var i = 0; i < data.length;i++){
-      str += String.fromCharCode(data[i]);
-    }
-    str = str.trim();
-    if(str.length != 11) return;
-    console.log(str);
-    app.get('socket').emit('card',{card:str});
-  });
-});
-
-*/
 
 /**
  * Normalize a port into a number, string, or false.

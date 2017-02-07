@@ -35,21 +35,18 @@ router.post('/syncmembers', function(req, res, next) {
 });
 
 router.get('/access', function(req, res, next) {
-  //
+  console.log('Checking access...');
   var card_uid = req.query.card;
   var result = fablab.access(card_uid);
 
   if(result.status == 'OK'){
-	console.log('open sesame');
-	var exec = require('child_process').exec;
-        var child = exec('python /home/pi/fablabnv/yellowlight.py',function(error, stdout, stderr){
-		if(error != null) {
-			console.log(stderr);
-		}
-		else {
-			console.log('looks ok');
-		}
-	});
+    var port = req.app.get('serial');
+    if(port){
+      console.log('sending opening msg');
+      port.write('open'+"\n");
+    } else {
+      console.log('no port reference - fail to send');
+    }
   }
 
   res.send(result);
