@@ -12,6 +12,11 @@ var TAKING_PHOTO = false;
 $(document).ready(function(){
     load_clocks();
     member_filter_setup();
+
+    if (Notification) {
+      if (Notification.permission !== "granted") Notification.requestPermission();
+    }
+
 });
 
 socket.on('card',function(data){
@@ -44,6 +49,11 @@ function is_processing(uid){
 function process_card(uid){
   
   PROCESSING = uid;
+  if(STATE === 'lock') {
+    process_lock(uid);
+    return;
+  }
+
   $('#cardreader').modal('show');
   $('#cardreader .waiting').show();
   $('#cardreader .alert').hide();
@@ -53,7 +63,6 @@ function process_card(uid){
 
   if(STATE === 'regcard') process_regcard(uid);
   
-  if(STATE === 'lock') process_lock(uid);
 }
 
 function setAdmin(data){
@@ -121,7 +130,22 @@ function process_regcard(uid){
           dataType:'json'
           });
 }
+function pushNotification(title,body){
+  
+  if(window.Notification && Notification.permission !== "denied") {
+    Notification.requestPermission(function(status) {  // status is "granted", if accepted by user
+      var n = new Notification(title, { 
+        body: body,
+        icon: 'http://localhost:3000/images/lab_pass.png' // optional
+      }); 
 
+      setTimeout(function(){
+          n.close();
+      }, 3000); 
+
+    });
+  }
+}
 function process_lock(uid){
     $.ajax({
           method:'GET',
@@ -129,16 +153,12 @@ function process_lock(uid){
           data:{card: uid },
           success:function(data){
             if(data.status ==='KO'){
-              $('#cardreader .ko_message').show();
-              $('#cardreader .waiting').hide();
-              $('#cardreader .ko_message').html(data.message);
+              pushNotification('Fablab Admin', data.message);
               setTimeout(clearProcess,(1000 * 4));
               return;
             }
 
-            $('#cardreader .ok_message').show();
-            $('#cardreader .waiting').hide();
-            $('#cardreader .ok_message').html(data.message);
+            pushNotification('Fablab Admin', data.message);
             setTimeout(clearProcess,(1000 * 3));
           },
           dataType:'json'
@@ -298,22 +318,16 @@ function shutdown(){
 }
 
 function edit_photo(){
-
-  /*
   if(!IS_ADMIN){
     check_admin(edit_photo);
     return;
   }
-  */
-  //
-  //
+
   $('#edit_photo').hide();
   $('#editing_photo').show();
   $('#member_photo').hide();
   $('#video').show();
-  //socket.emit('start-photo');
-  //TAKING_PHOTO = true;
-  //
+
   var video = document.getElementById('video');
   var mediaConfig =  { video: true };
 			// Put video listeners into place
@@ -516,12 +530,10 @@ function removeGroup(idx){
 }
 
 function access(){
-  /*
   if(!IS_ADMIN){
     check_admin(access);
     return;
   }
-  */
 
   load_panel('access');
 
