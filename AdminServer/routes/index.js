@@ -145,5 +145,21 @@ router.post('/remove_opening', function(req, res, next) {
   res.send(fablab.removeOpening(req.body.opening));
 });
 
+router.post('/add_message', function(req, res, next) {
+  res.send(fablab.addMessage());
+});
+
+router.get('/messages', function(req, res, next) {
+  res.send(fablab.allMessages());
+});
+
+router.post('/removeMessage', function(req, res, next) {
+  res.send(fablab.removeMessage(req.body.message));
+});
+
+router.post('/saveMessage', function(req, res, next) {
+  res.send(fablab.saveMessage(req.body.message,req.body.content));
+});
+
 
 module.exports = router;

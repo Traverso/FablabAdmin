@@ -10,7 +10,7 @@ var IS_ADMIN = false;
 var TAKING_PHOTO = false;
 
 $(document).ready(function(){
-    load_clocks();
+    home();
     member_filter_setup();
 
     if (Notification) {
@@ -73,7 +73,7 @@ function setAdmin(data){
 	STATE_CALLBACK();
 	STATE_CALLBACK = null;
     }
-    setTimeout(clearAdmin,(1000 * 60));
+    setTimeout(clearAdmin,(3000 * 60));
 }
 function clearAdmin(){
     if(TAKING_PHOTO){
@@ -233,6 +233,11 @@ function render_members(members){
         $('.name',item).html( admin + member.name);
         $('.email',item).html(member.email);
         $('.status',item).html(member.member_status);
+        if(member.photo){
+          $('img',item).attr('src',member.photo);
+        }
+
+        $(item).attr('onclick',"member('"+ member.stripeid +"')");
 
         $('#members_grid_view').append(item);
         idx++;
@@ -538,11 +543,100 @@ function access(){
   load_panel('access');
 
   $('#settings_collabsable').on('show.bs.collapse', function (ev) {
-       
       if(ev.target.id == 'user_groups') loadUserGroupPanel();
       if(ev.target.id == 'openings') loadOpeningsPanel();
+      if(ev.target.id == 'messages') loadMessagingPanel();
    });
 
+}
+
+function addMessage(){
+
+  $.ajax({
+          method:'POST',
+          url:'/add_message',
+          success:function(data){
+            loadMessages(data);
+          }
+         });
+}
+
+function loadMessages(messages){
+  $('#message_list').empty();
+  for(var i = 0; i < messages.length;i++){
+      var msg = $('.message_item','#templates').clone();
+
+      $(msg).attr('id','m_'+ messages[i].id);
+      $('.content_area',msg).html(messages[i].content);
+      $('.edited',msg).html(messages[i].edited);
+      $('.remove',msg).attr('href','javascript:removeMessage(\''+ messages[i].id +'\')');
+      $('.edit',msg).attr('href','javascript:editMessage(\''+ messages[i].id +'\')');
+
+
+      $('.cancel',msg).attr('href','javascript:cancelEditMessage(\''+ messages[i].id +'\')');
+      $('.save',msg).attr('href','javascript:saveMessage(\''+ messages[i].id +'\')');
+      $('#message_list').append(msg);
+  }
+}
+
+function removeMessage(id){
+  $.ajax({
+          method:'POST',
+          url:'/removeMessage',
+          data:{message:id},
+          success:function(data){
+            loadMessages(data);
+          }
+         });
+}
+
+
+var CURRENT_CONTENT = '';
+var CURRENT_EDIT = null;
+
+function cancelEditMessage(id){
+   $('.ed','#m_'+ id).show();
+   $('.cn','#m_'+ id).hide();
+   $('.content_area','#m_'+ id).summernote('destroy');
+   $('.content_area','#m_'+ id).html(CURRENT_CONTENT);
+   CURRENT_EDIT = null;
+}
+
+function saveMessage(id){
+   $('.ed','#m_'+ id).show();
+   $('.cn','#m_'+ id).hide();
+   $('.content_area','#m_'+ id).summernote('destroy');
+   CURRENT_EDIT = null;
+   CURRENT_CONTENT = '';
+
+   $.ajax({
+          method:'POST',
+          url:'/saveMessage',
+          data:{message:id,content:$('.content_area','#m_'+ id).html() },
+          success:function(data){
+            //
+          }
+          });
+}
+
+function editMessage(id){
+   if(CURRENT_EDIT) cancelEditMessage(CURRENT_EDIT);
+   //load ui
+   $('.content_area','#m_'+ id).summernote({height:300,minHeight:null,maxHeight:null,focus:true});
+   $('.ed','#m_'+ id).hide();
+   $('.cn','#m_'+ id).show();
+   CURRENT_CONTENT = $('.content_area','#m_'+ id).html();
+   CURRENT_EDIT = id;
+}
+
+function loadMessagingPanel(){
+  $.ajax({
+          method:'GET',
+          url:'/messages',
+          success:function(data){
+            loadMessages(data);
+          }
+         });
 }
 
 function loadOpeningsPanel(){
@@ -806,76 +900,21 @@ function logs(){
 
 function home(){
   load_panel('home');
-}
 
-function edit_opening_hours(){
+  $('#frontpage_messages').empty();
 
-  PROCESSING = null;
-  $('#opening_hours').hide();
-  $('#opening_hours_edit').show();
-}
-
-function load_clocks(){
-    $.ajax({
+  $.ajax({
           method:'GET',
-          url:'/openinghours',
+          url:'/messages',
           success:function(data){
-            set_clock(data);
-          },
-          dataType:'json'
-          });
-}
-function save_opening_hours(){
-    $.ajax({
-          method:'POST',
-          url:'/save_openinghours',
-          data:{
-                "from_hour":$('#from-hour').val(),
-                "from_minute":$('#from-minutes').val(),
-                "to_hour":$('#to-hour').val(),
-                "to_minute":$('#to-minutes').val()
-                },
-          success:function(data){
-            set_clock(data);
-
-            $('#opening_hours').show();
-            $('#opening_hours_edit').hide();
-          },
-          dataType:'json'
-          });
-}
-
-function set_clock(data){
-  
-  $('select.hours').empty();
-  $('select.minutes').empty();
-
-
-  for(var i = 0; i < 24;i++){
-    var h = (i + 1);
-    if(h < 10) h = '0'+ h;
-    $('select.hours').append('<option>'+ h +'</option>');
-  }
-
-  for(var i = 0; i < 4;i++){
-    var m = (i * 15);
-    if(i==0) m = '00';
-    $('select.minutes').append('<option>'+ m +'</option>');
-  }
-
-  $('.from-time').html(data.from_hour +':'+ data.from_minute);
-  $('.to-time').html(data.to_hour +':'+ data.to_minute);
-
-  $('#from-hour').val(data.from_hour);
-  $('#from-minutes').val(data.from_minute);
-
-  $('#to-hour').val(data.to_hour);
-  $('#to-minutes').val(data.to_minute);
-}
-
-function cancel_opening_hours(){
-  $('#opening_hours').show();
-  $('#opening_hours_edit').hide();
+            for(var i =0; i < data.length;i++){
+              var msg = $('.front_message_item','#templates').clone();
+              $('.content_area',msg).html(data[i].content);
+              $('.edited',msg).html(data[i].edited);
+              $('#frontpage_messages').append(msg);
+            }
+          }
+         });
 }
 
 function check_admin(callback){
