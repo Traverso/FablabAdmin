@@ -47,40 +47,135 @@ io.sockets.on('connection', function(socket) {
 
 //setup serial
 sp.list(function(error,ports){
+
+  var port_A = null;
+  var port_B = null;
+
   for(var i=0; i < ports.length;i++){
     var p = ports[i];
-    console.log(p);
 
     if(p.manufacturer && p.manufacturer.indexOf('Arduino') != -1){
 
-      var port = new SerialPort(p.comName,function(err){
-        if(err){
-          console.log('Error:', err.message);
-        }
-      });
+      //if(port_A == null){
+      if(p.manufacturer.indexOf('Arduino LLC') != -1){
 
-      port.on('open',function(){
-        console.log('Serial port opened');
+          port_A = new SerialPort(p.comName,function(err){
+            if(err){
+              console.log('Error:', err.message);
+            }
+          });
 
-        app.set('serial',port);
+          port_A.on('open',function(){
+            console.log('Serial port A opened');
+            console.log(port_A);
 
-        port.on('data',function(data){
-          var str = '';
-          for(var i = 0; i < data.length;i++){
-            str += String.fromCharCode(data[i]);
-          }
-          str = str.trim();
-          //console.log(str);
-          if(str.length != 11) return;
+            console.log('set serial to port A');
+            app.set('serial',port_A);
 
-	        var s = app.get('socket');
-          s.emit('card',{card:str});
-        });
-      });
+            var card_A_str = '';
+            port_A.on('data',function(data){
+              var str = '';
+              for(var i = 0; i < data.length;i++){
+                str += String.fromCharCode(data[i]);
+              }
+              str = str.trim();
+
+              if(str.length == 11 && !isNaN(parseInt(str,16))){
+                  var s = app.get('socket');
+                  s.emit('card',{card:str});
+                  return;
+              }
+
+              if(str.indexOf('<') != -1){
+                card_A_str = str.slice(str.indexOf('<'));
+              }
+
+              if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
+                card_A_str += str;
+              }
+
+              if(str.indexOf('>') != -1){
+                card_A_str += str.slice(0,str.indexOf('>') + 1);
+              }
+
+              if(card_A_str.indexOf('<') != -1 && card_A_str.indexOf('>') != -1){
+                var card = normalizeCardID(card_A_str);
+                var s = app.get('socket');
+                s.emit('card',{card:card});
+              }
+
+            });
+          });
+          continue;
+      }
+
+      if(p.manufacturer.indexOf('www.arduino.cc') != -1){
+
+          port_B = new SerialPort(p.comName,function(err){
+            if(err){
+              console.log('Error:', err.message);
+            }
+          });
+
+          port_B.on('open',function(){
+            console.log('Serial port B opened');
+            console.log(port_B);
+
+            var card_B_str = '';
+            port_B.on('data',function(data){
+
+              var str = '';
+              for(var i = 0; i < data.length;i++){
+                str += String.fromCharCode(data[i]);
+              }
+              str = str.trim();
+
+              if(str.length == 11 && !isNaN(parseInt(str,16))){
+                  var s = app.get('socket');
+                  s.emit('card',{card:str});
+                  return;
+              }
+
+              if(str.indexOf('<') != -1){
+                card_B_str = str.slice(str.indexOf('<'));
+              }
+
+              if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
+                card_B_str += str;
+              }
+
+              if(str.indexOf('>') != -1){
+                card_B_str += str.slice(0,str.indexOf('>') + 1);
+              }
+
+              if(card_B_str.indexOf('<') != -1 && card_B_str.indexOf('>') != -1){
+                var card = normalizeCardID(card_B_str);
+                var s = app.get('socket');
+                s.emit('card',{card:card});
+              }
+
+            });
+          });
+          continue;
+      }
     }
   }
 
 });
+
+function normalizeCardID(card){
+  card = card.replace('<','');
+  card = card.replace('>','');
+  card = card.trim();
+
+  card = card.split(' ').join('');
+  var c = '';
+  for(var i = 0; i < card.length;i ++){
+    if(i % 2 == 0) c+= ' ';
+    c+= card[i];
+  }
+  return c.trim();
+}
 
 
 /**
