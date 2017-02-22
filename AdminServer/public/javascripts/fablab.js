@@ -94,12 +94,13 @@ function process_admincheck(uid){
               $('#cardreader .ko_message').show();
               $('#cardreader .waiting').hide();
               $('#cardreader .ko_message').html('Du har ikke rettigheder til handlingen');
-              setTimeout(clearProcess,(1000 * 4));
+              setTimeout(clearProcess,(500));
               return;
             }
 
             $('#cardreader').modal('hide');
             setAdmin(data);
+            setTimeout(clearProcess,(1000 * 1));
 
           },
           dataType:'json'
@@ -154,12 +155,12 @@ function process_lock(uid){
           success:function(data){
             if(data.status ==='KO'){
               pushNotification('Fablab Admin', data.message);
-              setTimeout(clearProcess,(1000 * 4));
+              setTimeout(clearProcess,(1000 * 1));
               return;
             }
 
             pushNotification('Fablab Admin', data.message);
-            setTimeout(clearProcess,(1000 * 3));
+            setTimeout(clearProcess,(1000 * 1));
           },
           dataType:'json'
           });

@@ -44,124 +44,154 @@ io.sockets.on('connection', function(socket) {
   app.set('socket',socket);
 });
 
+function connectArduino()
+{
+	//setup serial
+	sp.list(function(error,ports){
 
-//setup serial
-sp.list(function(error,ports){
+	  var port_A = null;
+	  var port_B = null;
 
-  var port_A = null;
-  var port_B = null;
+	  for(var i=0; i < ports.length;i++){
+	    var p = ports[i];
 
-  for(var i=0; i < ports.length;i++){
-    var p = ports[i];
+	    if(p.manufacturer && p.manufacturer.indexOf('Arduino') != -1){
 
-    if(p.manufacturer && p.manufacturer.indexOf('Arduino') != -1){
+	      //if(port_A == null){
+	      if(p.manufacturer.indexOf('Arduino LLC') != -1){
 
-      //if(port_A == null){
-      if(p.manufacturer.indexOf('Arduino LLC') != -1){
+		  port_A = new SerialPort(p.comName,function(err){
+		    if(err){
+		      console.log('Error:', err.message);
+		    }
+		  });
 
-          port_A = new SerialPort(p.comName,function(err){
-            if(err){
-              console.log('Error:', err.message);
-            }
-          });
+		  port_A.on('close',function(){
+			console.log("Arduino port A closed");
+			reconnectArduino();
+		  });
 
-          port_A.on('open',function(){
-            console.log('Serial port A opened');
-            console.log(port_A);
+		  port_A.on('open',function(){
+		    console.log('Serial port A opened');
+		    console.log(port_A);
 
-            console.log('set serial to port A');
-            app.set('serial',port_A);
+		    console.log('set serial to port A');
+		    app.set('serial',port_A);
 
-            var card_A_str = '';
-            port_A.on('data',function(data){
-              var str = '';
-              for(var i = 0; i < data.length;i++){
-                str += String.fromCharCode(data[i]);
-              }
-              str = str.trim();
+		    var card_A_str = '';
+		    port_A.on('data',function(data){
+		      var str = '';
+		      for(var i = 0; i < data.length;i++){
+			str += String.fromCharCode(data[i]);
+		      }
+		      str = str.trim();
 
-              if(str.length == 11 && !isNaN(parseInt(str,16))){
-                  var s = app.get('socket');
-                  s.emit('card',{card:str});
-                  return;
-              }
+		      if(str.indexOf('<') != -1 && str.indexOf('>') != -1) str = normalizeCardID(str);
+		      console.log(str +',length:'+ str.length);
 
-              if(str.indexOf('<') != -1){
-                card_A_str = str.slice(str.indexOf('<'));
-              }
+		      //if((str.length == 11 || str.length == 20) && !isNaN(parseInt(str,16))){
+		      if((str.length == 11 || str.length == 20) ){
+			  var s = app.get('socket');
+			  s.emit('card',{card:str});
+			  return;
+		      }
 
-              if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
-                card_A_str += str;
-              }
+		      if(str.indexOf('<') != -1){
+			card_A_str = str.slice(str.indexOf('<'));
+		      }
 
-              if(str.indexOf('>') != -1){
-                card_A_str += str.slice(0,str.indexOf('>') + 1);
-              }
+		      if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
+			card_A_str += str;
+		      }
 
-              if(card_A_str.indexOf('<') != -1 && card_A_str.indexOf('>') != -1){
-                var card = normalizeCardID(card_A_str);
-                var s = app.get('socket');
-                s.emit('card',{card:card});
-              }
+		      if(str.indexOf('>') != -1){
+			card_A_str += str.slice(0,str.indexOf('>') + 1);
+		      }
 
-            });
-          });
-          continue;
-      }
+		      if(card_A_str.indexOf('<') != -1 && card_A_str.indexOf('>') != -1){
+			var card = normalizeCardID(card_A_str);
+			var s = app.get('socket');
+			s.emit('card',{card:card});
+		      }
 
-      if(p.manufacturer.indexOf('www.arduino.cc') != -1){
+		    });
+		  });
+		  continue;
+	      }
 
-          port_B = new SerialPort(p.comName,function(err){
-            if(err){
-              console.log('Error:', err.message);
-            }
-          });
+	      if(p.manufacturer.indexOf('www.arduino.cc') != -1){
 
-          port_B.on('open',function(){
-            console.log('Serial port B opened');
-            console.log(port_B);
+		  port_B = new SerialPort(p.comName,function(err){
+		    if(err){
+		      console.log('Error:', err.message);
+		    }
+		  });
 
-            var card_B_str = '';
-            port_B.on('data',function(data){
+		  port_A.on('close',function(){
+			console.log("Arduino port B closed");
+			reconnectArduino();
+		  });
 
-              var str = '';
-              for(var i = 0; i < data.length;i++){
-                str += String.fromCharCode(data[i]);
-              }
-              str = str.trim();
+		  port_B.on('open',function(){
+		    console.log('Serial port B opened');
+		    console.log(port_B);
 
-              if(str.length == 11 && !isNaN(parseInt(str,16))){
-                  var s = app.get('socket');
-                  s.emit('card',{card:str});
-                  return;
-              }
+		    var card_B_str = '';
+		    port_B.on('data',function(data){
 
-              if(str.indexOf('<') != -1){
-                card_B_str = str.slice(str.indexOf('<'));
-              }
+		      var str = '';
+		      for(var i = 0; i < data.length;i++){
+			str += String.fromCharCode(data[i]);
+		      }
+		      str = str.trim();
 
-              if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
-                card_B_str += str;
-              }
 
-              if(str.indexOf('>') != -1){
-                card_B_str += str.slice(0,str.indexOf('>') + 1);
-              }
+		      if(str.indexOf('<') != -1 && str.indexOf('>') != -1) str = normalizeCardID(str);
+		      console.log(str +',length:'+ str.length);
 
-              if(card_B_str.indexOf('<') != -1 && card_B_str.indexOf('>') != -1){
-                var card = normalizeCardID(card_B_str);
-                var s = app.get('socket');
-                s.emit('card',{card:card});
-              }
+		      //if((str.length == 11 || str.length == 20) && !isNaN(parseInt(str,16))){
+		      if((str.length == 11 || str.length == 20) ){
+			  var s = app.get('socket');
+			  s.emit('card',{card:str});
+			  return;
+		      }
 
-            });
-          });
-          continue;
-      }
-    }
-  }
+		      if(str.indexOf('<') != -1){
+			card_B_str = str.slice(str.indexOf('<'));
+		      }
 
-});
+		      if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
+			card_B_str += str;
+		      }
+
+		      if(str.indexOf('>') != -1){
+			card_B_str += str.slice(0,str.indexOf('>') + 1);
+		      }
+
+		      if(card_B_str.indexOf('<') != -1 && card_B_str.indexOf('>') != -1){
+			var card = normalizeCardID(card_B_str);
+			var s = app.get('socket');
+			s.emit('card',{card:card});
+		      }
+
+		    });
+		  });
+		  continue;
+	      }
+	    }
+	  }
+
+	});
+}
+
+connectArduino();
+
+function reconnectArduino(){
+	setTimeout(function(){
+		console.log('Reconnecting boards');
+		connectArduino();
+	},2000);
+}
 
 function normalizeCardID(card){
   card = card.replace('<','');
