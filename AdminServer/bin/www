@@ -9,10 +9,7 @@ var debug = require('debug')('fablabnv:server');
 var http = require('http');
 var sp = require('serialport');
 var SerialPort = sp.SerialPort;
-var PHOTO_FILE = '/home/pi/fablabnv/public/image_stream.jpg';
-var fs = require('fs');
-var spawn = require('child_process').spawn;
-var proc;
+var fablab = require('fablab');
 
 /**
  * Get port from environment and store in Express.
@@ -67,8 +64,8 @@ function connectArduino()
 		  });
 
 		  port_A.on('close',function(){
-			console.log("Arduino port A closed");
-			reconnectArduino();
+        console.log("Arduino port A closed");
+        reconnectArduino();
 		  });
 
 		  port_A.on('open',function(){
@@ -82,7 +79,7 @@ function connectArduino()
 		    port_A.on('data',function(data){
 		      var str = '';
 		      for(var i = 0; i < data.length;i++){
-			str += String.fromCharCode(data[i]);
+			      str += String.fromCharCode(data[i]);
 		      }
 		      str = str.trim();
 
@@ -91,27 +88,29 @@ function connectArduino()
 
 		      //if((str.length == 11 || str.length == 20) && !isNaN(parseInt(str,16))){
 		      if((str.length == 11 || str.length == 20) ){
-			  var s = app.get('socket');
-			  s.emit('card',{card:str});
-			  return;
+            var s = app.get('socket');
+            if(!s) return checkAccess(str);
+            s.emit('card',{card:str});
+            return;
 		      }
 
 		      if(str.indexOf('<') != -1){
-			card_A_str = str.slice(str.indexOf('<'));
+			      card_A_str = str.slice(str.indexOf('<'));
 		      }
 
 		      if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
-			card_A_str += str;
+			      card_A_str += str;
 		      }
 
 		      if(str.indexOf('>') != -1){
-			card_A_str += str.slice(0,str.indexOf('>') + 1);
+			      card_A_str += str.slice(0,str.indexOf('>') + 1);
 		      }
 
 		      if(card_A_str.indexOf('<') != -1 && card_A_str.indexOf('>') != -1){
-			var card = normalizeCardID(card_A_str);
-			var s = app.get('socket');
-			s.emit('card',{card:card});
+            var card = normalizeCardID(card_A_str);
+            var s = app.get('socket');
+            if(!s) return checkAccess(card);
+            s.emit('card',{card:card});
 		      }
 
 		    });
@@ -128,8 +127,8 @@ function connectArduino()
 		  });
 
 		  port_A.on('close',function(){
-			console.log("Arduino port B closed");
-			reconnectArduino();
+        console.log("Arduino port B closed");
+        reconnectArduino();
 		  });
 
 		  port_B.on('open',function(){
@@ -141,7 +140,7 @@ function connectArduino()
 
 		      var str = '';
 		      for(var i = 0; i < data.length;i++){
-			str += String.fromCharCode(data[i]);
+			      str += String.fromCharCode(data[i]);
 		      }
 		      str = str.trim();
 
@@ -151,27 +150,31 @@ function connectArduino()
 
 		      //if((str.length == 11 || str.length == 20) && !isNaN(parseInt(str,16))){
 		      if((str.length == 11 || str.length == 20) ){
-			  var s = app.get('socket');
-			  s.emit('card',{card:str});
-			  return;
+            var s = app.get('socket');
+
+            if(!s) return checkAccess(str);
+            s.emit('card',{card:str});
+            return;
 		      }
 
 		      if(str.indexOf('<') != -1){
-			card_B_str = str.slice(str.indexOf('<'));
+			      card_B_str = str.slice(str.indexOf('<'));
 		      }
 
 		      if(str.indexOf('<') == -1 && str.indexOf('>') == -1){
-			card_B_str += str;
+			      card_B_str += str;
 		      }
 
 		      if(str.indexOf('>') != -1){
-			card_B_str += str.slice(0,str.indexOf('>') + 1);
+			      card_B_str += str.slice(0,str.indexOf('>') + 1);
 		      }
 
 		      if(card_B_str.indexOf('<') != -1 && card_B_str.indexOf('>') != -1){
-			var card = normalizeCardID(card_B_str);
-			var s = app.get('socket');
-			s.emit('card',{card:card});
+            var card = normalizeCardID(card_B_str);
+            var s = app.get('socket');
+
+            if(!s) return checkAccess(card);
+            s.emit('card',{card:card});
 		      }
 
 		    });
@@ -185,6 +188,20 @@ function connectArduino()
 }
 
 connectArduino();
+
+function checkAccess(card_uid){
+  var result = fablab.access(card_uid);
+
+  if(result.status == 'OK'){
+    var port = req.app.get('serial');
+    if(port){
+      console.log('sending opening msg');
+      port.write('open'+"\n");
+    } else {
+      console.log('no port reference - fail to send');
+    }
+  }
+}
 
 function reconnectArduino(){
 	setTimeout(function(){
