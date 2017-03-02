@@ -769,7 +769,7 @@ function savingOpening(idx){
       opening.groups.push(g);
   });
 
-  opening.active = ($("input[name=status_rad]:checked",'#oi_'+ idx).val() == 'aktiv'); 
+  opening.active = ($("input[name=status_rad_"+ idx +"]:checked",'#oi_'+ idx).val() == 'aktiv'); 
   //console.log(opening);
 
   $.ajax({
