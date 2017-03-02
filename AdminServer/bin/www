@@ -193,7 +193,7 @@ function checkAccess(card_uid){
   var result = fablab.access(card_uid);
 
   if(result.status == 'OK'){
-    var port = req.app.get('serial');
+    var port = app.get('serial');
     if(port){
       console.log('sending opening msg');
       port.write('open'+"\n");
